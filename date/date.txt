@@ -2,10 +2,6 @@
 
 ```c++
 #include<iostream>
-#include<cstdio>
-#include<cstring>
-#define min(a,b) ( (a < b)? a : b )
-#define max(a,b) ( (a > b)? a : b )
 
 /*判断是否是闰年*/
 bool is_leap(int year) {
@@ -40,14 +36,63 @@ public:
 	date& operator=(const date& d) {
 		this->year = d.year;
 		this->month = d.month;
-		this->year = d.year;
+		this->day = d.day;
+		return *this;
+	}
+
+	/*计算一个日期加上n(n>=0)天后是什么日期*/
+	date operator+(int n) {
+		date ret = *this;
+		ret.day += n;
+		while (true) {
+			int D = ret.getDays();
+			if (ret.day <= D) break;
+			ret.day -= D; ret.month++;
+			if (ret.month > 12) { ret.month = 1; ret.year++; }
+		}
+		return ret;
+	}
+	/*增加n(n>=0)天*/
+	date& operator+=(int n) {
+		this->day += n;
+		while (true) {
+			int D = getDays();
+			if (day <= D) break;
+			day -= D; month++;
+			if (month > 12) { month = 1; year++; }
+		}
+	}
+
+	/*计算一个日期减去n(n>=0)天后是什么日期*/
+	date operator-(int n) {
+		date ret = *this;
+		ret.day -= n;
+		while (true) {
+			if (ret.day > 0) break;
+			if (ret.month == 1) { ret.year--; ret.month = 13;}
+			if (ret.month == 3) ret.day += is_leap(ret.year) ? 29 : 28;
+			else ret.day += DAYS[ret.month - 2];
+			ret.month--;
+		}
+		return ret;
+	}
+	/*倒退n(n>=0)天*/
+	date& operator-=(int n) {
+		this->day -= n;
+		while (true) {
+			if (day > 0) break;
+			if (month == 1) { year--; month = 13; }
+			if (month == 3)day += is_leap(year) ? 29 : 28;
+			else day += DAYS[month - 2];
+			month--;
+		}
 		return *this;
 	}
 
 	/*前置递增运算*/
 	date& operator++() {
 		if (day < this->getDays()) day++;
-		else {day = 1;if (++month > 12) month = 1, year++;}
+		else { day = 1; if (++month > 12) month = 1, year++; }
 		return *this;
 	}
 	/*后置递增运算*/
@@ -74,30 +119,27 @@ public:
 
 	/*求两个日期的差,如果两个日期是连续的，规定相差两天*/
 	int operator-(const date& d) {
-		int ans = 1;
-		date late = max(*this, d), early = min(*this, d);
-		while (late.year - early.year > 1) {/*一股脑地先同一年份*/
-			if (early.month == 2) {
-				if (early.day == 29) {ans += 364; early.day = 28;}
-				else ans += is_leap(early.year) ? 366 : 365;
+		int ret = 0;
+		date late, early;
+		*this > d ? (late = *this, early = d) : (early = *this, late = d);
+		/*跳年*/
+		while (late.year - early.year > 1) { 
+			if (early.month <= 2) {
+				if (early.month == 2 && early.day == 29) { ret += 365; early.day = 28; }
+				else ret += is_leap(early.year) ? 366 : 365;
 			}
-			else if (early.month > 2) 	ans += is_leap(early.year+1) ? 366 : 365;
-			else if (early.month < 2)   ans += is_leap(early.year) ? 366 : 365;
+			else if (early.month > 2) ret += is_leap(early.year + 1) ? 366 : 365;
 			early.year++;
 		}
-		if (late.year > early.year) late.month += 12;
-		if (late.month == early.month)  ans += late.day - early.day; 
-		else {
-			ans += early.getDays() - early.day + late.day;
-			for (int i = early.month + 1; i < late.month; i++) ans += DAYS[(i - 1) % 12];
-		}
-		return late == *this ? ans : -ans;
+		while (early < late) { ++early; ++ret; }
+		return *this > d ? ret : -ret;
 	}
 
 private:
 	/*二月单独讨论*/
 	const int DAYS[12] = { 31,0,31,30,31,30,31,31,30,31,30,31 };
 };
+
 
 ```
 
